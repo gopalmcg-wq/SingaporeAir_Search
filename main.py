@@ -1,36 +1,40 @@
-import Request_Date
-import pprint
-import datetime
+name: SQ Flight Checker — BOM → SFO
 
-flight_dates = []
-#Search from Today
-td = datetime.date.today()
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # every 5 minutes (GHA minimum)
+  workflow_dispatch:         # allows manual trigger from Actions tab
 
-#range(#): # = number of days in the future to search
-for i in range(20):
-    insert_date = td + datetime.timedelta(days=i)
-    flight_dates.append(insert_date.isoformat())
+jobs:
+  check-flights:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4       # kill if it hangs (stays under the 5-min window)
 
-#Change airport codes to search for flights from-to different destinations
-originAirport = "SIN"
-destinAirport = "PER"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-flights_available = {}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-for flight_date in flight_dates:
-    departureDate = returnDate = flight_date
+      - name: Install dependencies
+        run: pip install requests
 
-    payload = "{\r\n\t\"clientUUID\":\"SQ-API-Booking-Aggregator\",\r\n\t\"request\":{\r\n   \t  \t\"itineraryDetails\":[ " \
-              " \r\n   \t  \t\t{  \r\n\t            \"originAirportCode\":\""+originAirport+"\",\r\n\t            " \
-              "\"destinationAirportCode\":\""+destinAirport+"\",\r\n\t\t        \"departureDate\":\""+departureDate+"\"\r\n\t\t        }" \
-              "\r\n\t    ],\r\n\t    \"cabinClass\":\"Y\",\r\n\t    " \
-              "\"adultCount\":1,\r\n\t    \"childCount\":0,\r\n\t    \"infantCount\":0\r\n\t}\r\n,\r\n\t    " \
-              "\"flexibleDates\":\"false\"} "
+      - name: Run flight checker
+        env:
+          ALERT_EMAIL_TO:      ${{ secrets.ALERT_EMAIL_TO }}
+          ALERT_EMAIL_FROM:    ${{ secrets.ALERT_EMAIL_FROM }}
+          ALERT_EMAIL_APP_PWD: ${{ secrets.ALERT_EMAIL_APP_PWD }}
+          TELEGRAM_BOT_TOKEN:  ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:    ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python main.py
 
-    response_dict = Request_Date.searchSite(payload=payload)
-
-    flights_available.update({flight_date : {'date': flight_date, 'status':response_dict["status"] } })
-
-#Output
-pprint.pprint (flights_available)
-
+      - name: Upload screenshot (always, for debugging)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-${{ github.run_number }}
+          path: screenshot.png
+          retention-days: 1
