@@ -2,7 +2,7 @@ name: SQ Flight Checker - BOM to SFO
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+  ##  - cron: "*/5 * * * *"
   workflow_dispatch:
 
 jobs:
