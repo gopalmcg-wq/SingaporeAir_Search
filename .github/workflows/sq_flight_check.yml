@@ -1,5 +1,3 @@
-name: SQ Flight Checker — BOM → SFO
-
 on:
   schedule:
     - cron: "*/5 * * * *"   # every 5 minutes (GHA minimum)
